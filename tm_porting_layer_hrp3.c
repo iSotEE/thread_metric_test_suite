@@ -42,6 +42,7 @@
 #include    <kernel.h>
 #include    <t_syslog.h>
 #include    "kernel_cfg.h"
+#include    "target_test.h"
 
 #include    "tm_api.h"
 #include    "tm_porting_layer_hrp3.h"
@@ -172,12 +173,38 @@ int  tm_semaphore_get(int semaphore_id)
 }
 
 
+/* This function waits the specified semaphore.  If successful, the function should
+   return TM_SUCCESS. Otherwise, TM_ERROR should be returned.  */
+int  tm_semaphore_wait(int semaphore_id)
+{
+	ER ercd;
+	SVC_PERROR(ercd = wai_sem(TM_SEM_ID));
+	if (ercd == E_OK) {
+		return TM_SUCCESS;
+	}
+	return TM_ERROR;
+}
+
+
 /* This function puts the specified semaphore.  If successful, the function should
    return TM_SUCCESS. Otherwise, TM_ERROR should be returned.  */
 int  tm_semaphore_put(int semaphore_id)
 {
 	ER ercd;
 	SVC_PERROR(ercd = sig_sem(TM_SEM_ID));
+	if (ercd == E_OK) {
+		return TM_SUCCESS;
+	}
+	return TM_ERROR;
+}
+
+
+/* This function puts the specified semaphore.  If successful, the function should
+   return TM_SUCCESS. Otherwise, TM_ERROR should be returned.  */
+int  tm_semaphore_put_from_isr(int semaphore_id)
+{
+	ER ercd;
+	SVC_PERROR(ercd = SVC_CALL(sig_sem)(TM_SEM_ID));
 	if (ercd == E_OK) {
 		return TM_SUCCESS;
 	}
@@ -212,3 +239,7 @@ int  tm_memory_pool_deallocate(int pool_id, unsigned char *memory_ptr)
 }
 
 
+void tm_interrupt_raise(void)
+{
+	__int_exception(TM_INTNO);
+}

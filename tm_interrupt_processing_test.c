@@ -121,7 +121,7 @@ int status;
         /* Force an interrupt. The underlying RTOS must see that the 
            the interrupt handler is called from the appropriate software
            interrupt or trap. */
-        asm(" svc 0\n");    /* This is Cortex-M specific.  */
+        tm_interrupt_raise();
 
         /* We won't get back here until the interrupt processing is complete,
            including the setting of the semaphore from the interrupt 
@@ -140,14 +140,13 @@ int status;
 }
 
 
-/* void  tm_interrupt_preemption_handler(void)  */
-void SVC_Handler(void)        /* This is Cortex-M specific  */
+void  tm_interrupt_processing_handler(void)
 {
 
     tm_interrupt_handler_counter++;     /* Increment the interrupt count.  */
 
-   /* Put the semaphore from the interrupt handler.  */
-    tm_semaphore_put(0);
+    /* Put the semaphore from the interrupt handler.  */
+    tm_semaphore_put_from_isr(0);
 }
 
 

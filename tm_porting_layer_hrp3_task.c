@@ -47,7 +47,6 @@ printf(const char *format, ...)
 #include "tm_cooperative_scheduling_test.c"
 #undef main
 
-#if 0 // TODO: support interrupt
 #define main tm_interrupt_preemption_processing_test_main
 #include "tm_interrupt_preemption_processing_test.c"
 #undef main
@@ -55,7 +54,6 @@ printf(const char *format, ...)
 #define main tm_interrupt_processing_test_main
 #include "tm_interrupt_processing_test.c"
 #undef main
-#endif
 
 #define main tm_memory_allocation_test_main
 #include "tm_memory_allocation_test.c"
@@ -72,6 +70,14 @@ printf(const char *format, ...)
 #define main tm_synchronization_processing_test_main
 #include "tm_synchronization_processing_test.c"
 #undef main
+
+static void *test_interrupt_handler;
+
+void
+tm_interrupt_handler()
+{
+	((void (*)(void)) test_interrupt_handler)();
+}
 
 /*
  *  メインタスク
@@ -112,8 +118,7 @@ tm_main_task(intptr_t exinf)
 
 	switch (c) {
 	case '1':
-		//syslog(LOG_NOTICE, "START: Basic Processing Test");
-		printf("START: Basic Processing Test %d", 123456);
+		syslog(LOG_NOTICE, "START: Basic Processing Test");
 		tm_basic_processing_test_main();
 		break;
 
@@ -125,6 +130,18 @@ tm_main_task(intptr_t exinf)
 	case '3':
 		syslog(LOG_NOTICE, "START: Preemptive Scheduling Test");
 		tm_preemptive_scheduling_test_main();
+		break;
+
+	case '4':
+		syslog(LOG_NOTICE, "START: Interrupt Processing Test");
+		test_interrupt_handler = tm_interrupt_processing_handler;
+		tm_interrupt_processing_test_main();
+		break;
+
+	case '5':
+		syslog(LOG_NOTICE, "START: Interrupt Preemption Processing Test");
+		test_interrupt_handler = tm_interrupt_preemption_handler;
+		tm_interrupt_preemption_processing_test_main();
 		break;
 
 	case '6':
@@ -142,8 +159,6 @@ tm_main_task(intptr_t exinf)
 		tm_memory_allocation_test_main();
 		break;
 
-	case '4':
-	case '5':
 	default:
 		syslog(LOG_INFO, "Unknown command: '%c'.", c);
 	}

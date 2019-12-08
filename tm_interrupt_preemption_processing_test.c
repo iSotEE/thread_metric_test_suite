@@ -88,6 +88,13 @@ void  tm_interrupt_preemption_processing_initialize(void)
     /* Create interrupt thread at priority 3.  */
     tm_thread_create(0, 3, tm_interrupt_preemption_thread_0_entry);
 
+    /* Create a semaphore that will be posted from the interrupt
+       handler.  */
+    tm_semaphore_create(0);
+
+    /* Resume just thread 0.  */
+    tm_thread_resume(0);
+
     /* Create thread that generates the interrupt at priority 10.  */
     tm_thread_create(1, 10, tm_interrupt_preemption_thread_1_entry);
 
@@ -106,6 +113,15 @@ void  tm_interrupt_preemption_processing_initialize(void)
    interrupt handler.  It runs and suspends.  */
 void  tm_interrupt_preemption_thread_0_entry(void)
 {
+	int status;
+
+
+	    /* Pickup the semaphore since it is initialized to 1 by default. */
+	    status = tm_semaphore_get(0);
+
+	    /* Check for good status.  */
+	    if (status != TM_SUCCESS)
+	        return;
 
     while(1)
     {
@@ -113,9 +129,12 @@ void  tm_interrupt_preemption_thread_0_entry(void)
         /* Increment this thread's counter.  */
         tm_interrupt_preemption_thread_0_counter++;
 
-        /* Suspend. This will allow the thread generating the 
-           interrupt to run again.  */
-        tm_thread_suspend(0);
+        /* Wait the semaphore set by the interrupt handler. */
+        status = tm_semaphore_wait(0);
+
+        /* Check for good status.  */
+        if (status != TM_SUCCESS)
+            return;
     }
 }
 
@@ -129,8 +148,7 @@ void  tm_interrupt_preemption_thread_1_entry(void)
         /* Force an interrupt. The underlying RTOS must see that the 
            the interrupt handler is called from the appropriate software
            interrupt or trap. */
-        asm(" svc 0\n");    /* This is Cortex-M specific.  */
-
+        tm_interrupt_raise();
       
         /* We won't get back here until the interrupt processing is complete,
            including the execution of the higher priority thread made ready
@@ -146,14 +164,13 @@ void  tm_interrupt_preemption_thread_1_entry(void)
    To be fair, it must behave just like a processor interrupt, i.e. it must save
    the full context of the interrupted thread during the preemption processing. */
    
-/* void  tm_interrupt_preemption_handler(void)  */
-void SVC_Handler(void)      /* This is Cortex-M specific  */
+void  tm_interrupt_preemption_handler(void)
 {
 
     tm_interrupt_preemption_handler_counter++;      /* Increment the interrupt count.  */
 
-    /* Resume the higher priority thread from the ISR.  */
-    tm_thread_resume(0);
+    /* Put the semaphore from the interrupt handler.  */
+    tm_semaphore_put_from_isr(0);
 }
 
 
