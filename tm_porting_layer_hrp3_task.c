@@ -162,10 +162,4 @@ tm_main_task(intptr_t exinf)
 	default:
 		syslog(LOG_INFO, "Unknown command: '%c'.", c);
 	}
-
-	SVC_PERROR(serial_rea_dat(LOGTASK_PORTID, &c, 1));
-
-	syslog(LOG_NOTICE, "Thread-Metric Test Suite ends.");
-	SVC_PERROR(ext_ker());
-	assert(0);
 }
