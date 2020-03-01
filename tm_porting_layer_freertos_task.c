@@ -72,7 +72,7 @@ static void prvMiscInitialization( void )
 #if defined(__RXV2) // Use SWINT2 for Renesas RXv2
 #include "platform.h"
 
-void *test_interrupt_handler;
+extern void *test_interrupt_handler;
 
 R_PRAGMA_INTERRUPT(tm_interrupt_handler, VECT(ICU,SWINT2))
 R_ATTRIB_INTERRUPT void tm_interrupt_handler(void)
@@ -129,7 +129,7 @@ void vApplicationDaemonTaskStartupHook( void )
     {
     	printf("Thread-Metric Test Suite starts.\n");
 
-    	char c = '8';
+    	char c = '0';
     	switch (c) {
     	case '1':
     		printf("START: Basic Processing Test\n");
