@@ -47,6 +47,8 @@
 #include    <arch/arm/cortex_m/cmsis.h>
 #include    "tm_api.h"
 
+LOG_MODULE_REGISTER(thread_metric);
+
 static void tm_thread_task(intptr_t exinf);
 
 K_THREAD_DEFINE(TM_TASK_0, 512/*STACKSIZE*/, tm_thread_task, 0, NULL, NULL, 1, K_USER, K_FOREVER);
@@ -242,6 +244,10 @@ void tm_interrupt_raise(void)
 
 #define ENABLE_PRINTF
 
+#if defined(CONFIG_ISOTEE_GUEST)
+#define printf LOG_ERR
+#endif
+
 #define main tm_basic_processing_test_main
 extern K_APP_BMEM(part_tm) volatile unsigned long   tm_basic_processing_counter;
 extern K_APP_BMEM(part_tm) volatile unsigned long   tm_basic_processing_array[1024];
@@ -361,17 +367,20 @@ tm_main_task(intptr_t exinf)
 	default:
 		printf("Unknown command: '%c'.", tm_main_task_input);
 	}
+    k_thread_abort(k_current_get());
 }
 
 K_THREAD_DEFINE(TM_MAIN, 512/*STACKSIZE*/, tm_main_task, NULL, NULL, NULL, CONFIG_MAIN_THREAD_PRIORITY, K_USER, K_FOREVER);
 
-static int cmd_tm(const struct shell *shell, size_t argc, char **argv) {
+int cmd_tm(const struct shell *shell, size_t argc, char **argv) {
 	ARG_UNUSED(argc);
-	ARG_UNUSED(argv);
 
     tm_main_task_input = argv[1][0];
 
+#if !defined(CONFIG_ISOTEE_GUEST)
     SCB->CCR |= SCB_CCR_USERSETMPEND_Msk;
+#endif
+
     IRQ_CONNECT(I2C3_ER_IRQn, _EXC_IRQ_DEFAULT_PRIO, tm_interrupt_handler, NULL, 0);
     irq_enable(I2C3_ER_IRQn);
 
@@ -397,6 +406,15 @@ static int cmd_tm(const struct shell *shell, size_t argc, char **argv) {
     k_thread_access_grant(TM_TASK_5, TM_TASK_0, TM_TASK_1, TM_TASK_2, TM_TASK_3, TM_TASK_4, TM_TASK_5, &TM_MSGQ, &TM_SEM);
 
     k_thread_start(TM_MAIN);
+    k_sleep(70000U);
+    k_thread_abort(TM_MAIN);
+    k_thread_abort(TM_TASK_0);
+    k_thread_abort(TM_TASK_1);
+    k_thread_abort(TM_TASK_2);
+    k_thread_abort(TM_TASK_3);
+    k_thread_abort(TM_TASK_4);
+    k_thread_abort(TM_TASK_5);
+    printf("Thread-Metric Test Suite exits.\n");
 
 	return 0;
 }
